@@ -16,9 +16,9 @@ Sundials = "c3572dad-4567-51f8-b174-8c6c989267f4"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 
 [compat]
-ForwardDiff = "1"
+ForwardDiff = "0.10, 1"
 Optimization = "4"
-OrdinaryDiffEq = "7"
+OrdinaryDiffEq = "6.70"
 Reexport = "1"
 SciMLBase = "2"
 SteadyStateDiffEq = "2"
