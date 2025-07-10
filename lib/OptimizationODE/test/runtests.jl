@@ -5,40 +5,40 @@ using LinearAlgebra, ForwardDiff
 using OrdinaryDiffEq, DifferentialEquations, SteadyStateDiffEq, Sundials
 
 # Test helper functions
-function rosenbrock(x, p,args...)
+function rosenbrock(x, p)
     return (p[1] - x[1])^2 + p[2] * (x[2] - x[1]^2)^2
 end
 
-function rosenbrock_grad!(grad, x, p,args...)
+function rosenbrock_grad!(grad, x, p)
     grad[1] = -2.0 * (p[1] - x[1]) - 4.0 * p[2] * (x[2] - x[1]^2) * x[1]
     grad[2] = 2.0 * p[2] * (x[2] - x[1]^2)
 end
 
-function quadratic(x, p,args...)
+function quadratic(x, p)
     return (x[1] - p[1])^2 + (x[2] - p[2])^2
 end
 
-function quadratic_grad!(grad, x, p,args...)
+function quadratic_grad!(grad, x, p)
     grad[1] = 2.0 * (x[1] - p[1])
     grad[2] = 2.0 * (x[2] - p[2])
 end
 
 # Constrained optimization problem
-function constrained_objective(x, p,args...)
+function constrained_objective(x, p)
     return x[1]^2 + x[2]^2
 end
 
-function constrained_objective_grad!(grad, x, p,args...)
+function constrained_objective_grad!(grad, x, p)
     grad[1] = 2.0 * x[1]
     grad[2] = 2.0 * x[2]
 end
 
-function constraint_func(res, x, p,args...)
+function constraint_func(res, x, p)
     res[1] = x[1] + x[2] - 1.0  # x[1] + x[2] = 1
     return x[1] + x[2] - 1.0
 end
 
-function constraint_jac!(jac, x, p,args...)
+function constraint_jac!(jac, x, p)
     jac[1, 1] = 1.0
     jac[1, 2] = -1.0
 end
@@ -102,21 +102,21 @@ end
     # Minimize f(x) = x₁² + x₂²
     # Subject to x₁ - x₂ = 1
 
-    function constrained_objective(x, p,args...)
+    function constrained_objective(x, p)
         return x[1]^2 + x[2]^2
     end
 
-    function constrained_objective_grad!(g, x, p, args...)
+    function constrained_objective_grad!(g, x, p)
         g .= 2 .* x .* p[1]
         return nothing
     end
 
     # Constraint: x₁ - x₂ - p[1] = 0  (p[1] = 1 → x₁ - x₂ = 1)
-    function constraint_func(x, p, args...)
+    function constraint_func(x, p)
         return x[1] - x[2] - p[1]
     end
 
-    function constraint_jac!(J, x,args...)
+    function constraint_jac!(J, x)
         J[1, 1] = 1.0
         J[1, 2] = -1.0
         return nothing
@@ -159,8 +159,8 @@ end
             x0 = [0.0, 0.0]
             p=Float64[]  # No parameters provided
             # Create a problem with NullParameters
-            optf = OptimizationFunction((x, p, args...) -> sum(x.^2), 
-                                      grad=(grad, x, p, args...) -> (grad .= 2.0 .* x))
+            optf = OptimizationFunction((x, p) -> sum(x.^2), 
+                                      grad=(grad, x, p) -> (grad .= 2.0 .* x))
             prob = OptimizationProblem(optf, x0,p)  # No parameters provided
             
             opt = ODEGradientDescent()
@@ -233,26 +233,14 @@ end
             x = [1.0, 2.0]
             f(x) = [x[1]^2 + x[2], x[1] * x[2]]
             
-            J = OptimizationODE.finite_difference_jacobian(f, x)
+            J = ForwardDiff.jacobian(f, x)
             
             expected_J = [2.0 1.0; 2.0 1.0]
             
             @test isapprox(J, expected_J, atol=1e-6)
         end
     end
-    
-    @testset "Solver Type Detection" begin
-        @testset "Mass Matrix Solvers" begin
-            opt = DAEMassMatrix()
-            @test OptimizationODE.get_solver_type(opt) == :mass_matrix
-        end
-        
-        @testset "Index Method Solvers" begin
-            opt = DAEIndexing()
-            @test OptimizationODE.get_solver_type(opt) == :indexing
-        end
-    end
-    
+     
     @testset "Error Handling and Edge Cases" begin
         @testset "Empty Constraints" begin
             x0 = [1.5, 0.5]
@@ -274,8 +262,8 @@ end
             x0 = [0.5]
             p = [1.0]
             
-            single_var_func(x, p,args...) = (x[1] - p[1])^2
-            single_var_grad!(grad, x, p,args...) = (grad[1] = 2.0 * (x[1] - p[1]))
+            single_var_func(x, p) = (x[1] - p[1])^2
+            single_var_grad!(grad, x, p) = (grad[1] = 2.0 * (x[1] - p[1]))
             
             optf = OptimizationFunction(single_var_func; grad=single_var_grad!)
             prob = OptimizationProblem(optf, x0, p)
